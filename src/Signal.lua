@@ -6,7 +6,7 @@ signal.__index = signal
 
 -- types
 type Callback<T...> = (T...) -> (...any)
-type CMods = {noyield: boolean?, unsafe: boolean?, once: boolean?}
+type CMods = {noyield: boolean?, unsafe: boolean?, once: boolean?, close: Callback<...any>?}
 type ArgPack = { [number]: any, n: number }
 type TYPE_ERROR = any
 
@@ -17,6 +17,7 @@ export type Connection<T...> = {
     _args: ArgPack?,
     Connected: boolean,
     Once: boolean, Yield: boolean, Safe: boolean,
+    OnClose: Callback<...any>,
     Disconnect: (self: Connection<T...>) -> (nil)
 }
 export type Signal<T...> = typeof(setmetatable({}, signal)) & {
@@ -51,6 +52,9 @@ local function getThread(): thread
 end
 
 local function disconnect<T...>(self: Connection<T...>): nil
+    if self.OnClose then
+        self:OnClose()
+    end
     (self._last :: Connection<...any>)._next = self._next;
     (self._next or self)._last = self._last
     self.Connected = false
@@ -92,6 +96,8 @@ function signal:ConnectWith<T...>(exec: Callback<T...>, mods: CMods?, ...: any):
             then not mods.noyield else conn.Once
         conn.Safe = if mods.unsafe ~= nil
             then not mods.unsafe else conn.Safe
+        conn.OnClose = if mods.close ~= nil
+            then mods.close else nil
     end
     return conn
 end
