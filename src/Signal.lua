@@ -3,6 +3,7 @@
 
 -- types
 type Callback<T...> = (T...) -> (...any)
+type Mods = { noyield: boolean?, once: boolean? }
 
 -- thread reuse
 local freeThread: thread? = nil
@@ -36,6 +37,18 @@ local function Connect<T...>(self: Signal<T...>, exec: Callback<T...>): Connecti
         Disconnect = Disconnect
     }
     cache[index] = cn
+    return cn
+end
+
+function Once<T...>(self: Signal<T...>, exec: Callback<T...>): Connection
+    local cn = self:Connect(exec)
+    cn.Once = true
+    return cn
+end
+
+function Sync<T...>(self: Signal<T...>, exec: Callback<T...>): Connection
+    local cn = self:Connect(exec)
+    cn.Yield = false
     return cn
 end
 
@@ -91,6 +104,8 @@ export type Connection = {
 export type Signal<T...> = {
     _cache  : {Connection},
     Connect : typeof(Connect),
+    Once    : typeof(Once),
+    Sync    : typeof(Sync),
     Fire    : typeof(FireImmediate),
     Defer   : typeof(FireDeferred),
     Unsafe  : typeof(FireUnsafe),
